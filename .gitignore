@@ -1,0 +1,11 @@
+# Ignore intermediate CMake files and Makefiles.
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+
+# Ignore swap files from Vim.
+*.swp
+
+# Ignore executables.
+source/bin/
