@@ -4,7 +4,6 @@
 #include "core.h"
 
 // Loading textures (from BMP files)
-
 #define MAX_TEXTURES 32
 struct Texture
 {
@@ -148,8 +147,12 @@ ivec2 CORE_GetBmpSize(int texix)
   return v;
 }
 
-void CORE_RenderCenteredSprite(vec2 pos, vec2 size, int texix)
+void CORE_RenderCenteredSprite(vec2 pos, vec2 size, int texix, rgba color, bool additive)
 {
+  glColor4f(color.r, color.g, color.b, color.a);
+  if (additive) glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+  else          glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
   vec2 p0 = vsub(pos, vscale(size, 0.5f));
   vec2 p1 = vadd(pos, vscale(size, 0.5f));
 
