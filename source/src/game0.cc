@@ -15,9 +15,7 @@ void Render()
   glClear(GL_COLOR_BUFFER_BIT);
 
   CORE_RenderCenteredSprite(
-      vmake(G_WIDTH/2.0f, G_HEIGHT/2.0f),
-      vmake(G_WIDTH, G_HEIGHT),
-      g_bkg);
+      vmake(G_WIDTH/2.0f, G_HEIGHT/2.0f), vmake(G_WIDTH, G_HEIGHT), g_bkg);
 
   if (SYS_KeyPressed(SYS_KEY_LEFT))
     CORE_RenderCenteredSprite(
