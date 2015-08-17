@@ -16,14 +16,14 @@ elseif(WIN32)
     find_path(AL_INCLUDE_DIRS al.h
             PATH_SUFFIXES include/AL include/OpenAL include
             PATHS
-            "$ENV{PROGRAMFILES(X86)}/OpenAL 1.1 SDK"
+            $ENV{PROGRAMFILES}/OpenAL\ 1.1\ SDK
             )
 
     find_library(AL_LIBRARIES
             NAMES OpenAL al openal OpenAL32
             PATH_SUFFIXES lib64 lib libs64 libs libs/Win32 libs/Win64
             PATHS
-            "$ENV{PROGRAMFILES(X86)}/OpenAL 1.1 SDK"
+            $ENV{PROGRAMFILES}/OpenAL\ 1.1\ SDK
             )
 
     set (OPENGL_gl_LIBRARY opengl32 CACHE STRING "OpenGL library for win32")
