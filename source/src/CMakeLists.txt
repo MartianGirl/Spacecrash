@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(Spacecrash)
 
 if(APPLE)
@@ -12,6 +12,7 @@ if(APPLE)
             ${GL_LIBRARIES}
             ${AL_LIBRARIES})
 elseif(WIN32)
+    # TODO: Check if I can use the FindOpenAL/FindOpenGL modules.
     find_path(AL_INCLUDE_DIRS al.h
             PATH_SUFFIXES include/AL include/OpenAL include
             PATHS
@@ -32,6 +33,8 @@ elseif(WIN32)
     target_link_libraries(Spacecrash
             ${GL_LIBRARIES}
             ${AL_LIBRARIES})
+        # TODO: Set the properties for compiling a Windows application
+        #       instead of a console one.
     set_target_properties(Spacecrash PROPERTIES LINK_FLAGS_DEBUG "/SUBSYSTEM:WINDOWS")
     set_target_properties(Spacecrash PROPERTIES LINK_FLAGS_MINSIZEREL "/SUBSYSTEM:WINDOWS")
     set_target_properties(Spacecrash PROPERTIES LINK_FLAGS_RELEASE "/SUBSYSTEM:WINDOWS")

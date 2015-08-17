@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.6)
+cmake_minimum_required(VERSION 3.0)
 project(Spacecrash)
 
 # Set an output directory for our binaries
