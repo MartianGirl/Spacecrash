@@ -114,7 +114,7 @@ int CORE_LoadBmp(const char filename[], bool wrap)
 
       // gluBuild2DMipmaps(GL_TEXTURE_2D, GL_RGBA8, width, height, GL_BGRA_EXT, GL_UNSIGNED_BYTE, pixloadbuffer);
 
-      heigth = abs((int)height);
+      height = abs((int)height);
       dword width_pow2 = hp2(width);
       dword height_pow2 = hp2(height);
 
