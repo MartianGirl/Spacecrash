@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 project(Spacecrash)
 
-if(APPLE)
+if(UNIX)
     find_package(PkgConfig REQUIRED)
     pkg_search_module(GLFW REQUIRED libglfw)
     pkg_search_module(GL REQUIRED gl)
@@ -42,10 +42,10 @@ elseif(WIN32)
 endif()
 
 # This is for all platforms
-install(TARGETS Spacecrash
-        RUNTIME
-        DESTINATION ${PROJECT_INSTALL_DIR})
 include_directories(${GLFW_INCLUDE_DIRS})
 include_directories(${GL_INCLUDE_DIRS})
 include_directories(${AL_INCLUDE_DIRS})
 
+install(TARGETS Spacecrash
+        RUNTIME
+        DESTINATION ${PROJECT_INSTALL_DIR})
