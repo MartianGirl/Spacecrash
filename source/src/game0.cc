@@ -2,14 +2,52 @@
 #include "stdafx.h"
 #include "base.h"
 #include "sys.h"
+#include "core.h"
+
+#define SHIP_W 250
+#define SHIP_H 270
+
+int g_ship_LL, g_ship_L, g_ship_C, g_ship_R, g_ship_RR;
+int g_bkg;
 
 void Render()
 {
   glClear(GL_COLOR_BUFFER_BIT);
+
+  CORE_RenderCenteredSprite(
+      vmake(G_WIDTH/2.0f, G_HEIGHT/2.0f),
+      vmake(G_WIDTH, G_HEIGHT),
+      g_bkg);
+
+  if (SYS_KeyPressed(SYS_KEY_LEFT))
+    CORE_RenderCenteredSprite(
+        vmake(G_WIDTH/2.0f, 200.0f), vmake(SHIP_W, SHIP_H), g_ship_LL);
+  else if (SYS_KeyPressed(SYS_KEY_RIGHT))
+    CORE_RenderCenteredSprite(
+        vmake(G_WIDTH/2.0f, 200.0f), vmake(SHIP_W, SHIP_H), g_ship_RR);
+  else
+    CORE_RenderCenteredSprite(
+        vmake(G_WIDTH/2.0f, 200.0f), vmake(SHIP_W, SHIP_H), g_ship_C);
 }
 
 void StartGame()
 {
+  g_ship_LL = CORE_LoadBmp("res/ShipLL.bmp", false);
+  g_ship_L  = CORE_LoadBmp("res/ShipL.bmp" , false);
+  g_ship_C  = CORE_LoadBmp("res/ShipC.bmp" , false);
+  g_ship_R  = CORE_LoadBmp("res/ShipR.bmp" , false);
+  g_ship_RR = CORE_LoadBmp("res/ShipRR.bmp", false);
+  g_bkg     = CORE_LoadBmp("res/bkg0.bmp"  , false);
+}
+
+void EndGame()
+{
+  CORE_UnloadBmp(g_ship_LL);
+  CORE_UnloadBmp(g_ship_L);
+  CORE_UnloadBmp(g_ship_C);
+  CORE_UnloadBmp(g_ship_R);
+  CORE_UnloadBmp(g_ship_RR);
+  CORE_UnloadBmp(g_bkg);
 }
 
 void RunGame()
@@ -43,13 +81,14 @@ int Main(void)
   while (!SYS_GottaQuit())
   {
     Render();
+    SYS_Show();
     ProcessInput();
     RunGame();
-    SYS_Show();
     SYS_Pump();
     SYS_Sleep(16);
     g_time += 1.0f / 60.0f;
   }
+  EndGame();
 
   return 0;
 }
