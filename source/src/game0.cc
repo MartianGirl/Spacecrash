@@ -5,6 +5,7 @@
 #include "core.h"
 
 #define SAFESUB(a,b) (a-b > 0 ? a-b : 0)
+#define LOG(ALL_ARGS) printf ALL_ARGS
 
 #define SPRITE_SCALE 8.0f
 #define SHADOW_OFFSET 80.0f
@@ -45,6 +46,7 @@
 #define FRAME_FUEL_COST 0.01f
 
 #define RACE_END 100000.0f
+#define FIRST_CHALLENGE 3000.0f
 
 #define FPS 60.0f
 #define FRAMETIME (1.0f/FPS)
@@ -54,6 +56,7 @@
 #define VICTORY_TIME 8.0f
 
 float g_current_race_pos = 0.0f;
+float g_next_challenge_area = FIRST_CHALLENGE;
 float g_camera_offset = 0.0f;
 float g_rock_chance = START_ROCK_CHANCE_PER_PIXEL;
 
@@ -257,6 +260,46 @@ void ResetNewGame()
       true);
 }
 
+void GenNextElements()
+{
+  // Called every game loop, but only does work when we are close to the 
+  // "next challenge area"
+  if (g_current_race_pos + 2 * G_HEIGHT > g_next_challenge_area)
+  {
+    float current_y = g_next_challenge_area;
+    LOG(("Current: %f\n", g_next_challenge_area));
+
+    // Choose how many layers of rocks
+    int nlayers = (int)CORE_URand(1, 3);
+    LOG((" nlayers: %d\n", nlayers));
+    for (int i = 0; i < nlayers; i++)
+    {
+      LOG(("  where: %f\n", current_y));
+
+      // Choose how many rocks
+      int nrocks = (int)CORE_URand(1, 2);
+      LOG(("  nrocks: %d\n", nrocks));
+
+      // Gen rocks
+      for (int i = 0; i < nrocks; i++)
+      {
+        InsertEntity(E_ROCK,
+            vmake(CORE_FRand(0.0f, G_WIDTH), current_y),
+            vmake(CORE_FRand(-1.0f, +1.0f), CORE_FRand(-1.0f, +1.0f)),
+            ROCK_RADIUS,
+            g_rock[1/*CORE_URand(0, 4)*/],
+            true);
+      } 
+
+      current_y += CORE_FRand(300.0f, 600.0f);
+    }
+
+    g_next_challenge_area = current_y 
+      + CORE_FRand(0.5f * G_HEIGHT, 1.5f * G_HEIGHT);
+    LOG(("Next: %f\n\n", g_next_challenge_area));
+  }
+}
+
 void RunGame()
 {
   // Control main ship
@@ -322,21 +365,22 @@ void RunGame()
   // Possibly insert new rock
   if (g_gs == GS_PLAYING)
   {
-    float trench = MAIN_SHIP.pos.y - g_current_race_pos;
+    GenNextElements();
+    // float trench = MAIN_SHIP.pos.y - g_current_race_pos;
     // How much advanced from previous frame
 
-    if (CORE_RandChance(trench * g_rock_chance))
-    {
-      InsertEntity(E_ROCK,
-          vmake(CORE_FRand(0.0f, G_WIDTH), g_camera_offset + G_HEIGHT + 400.0f),
-          vmake(CORE_FRand(-1.0f, +1.0f), CORE_FRand(-1.0f, +1.0f)),
-          ROCK_RADIUS,
-          g_rock[CORE_URand(0,4)],
-          true);
-    }
+    // if (CORE_RandChance(trench * g_rock_chance))
+    // {
+      // InsertEntity(E_ROCK,
+          // vmake(CORE_FRand(0.0f, G_WIDTH), g_camera_offset + G_HEIGHT + 400.0f),
+          // vmake(CORE_FRand(-1.0f, +1.0f), CORE_FRand(-1.0f, +1.0f)),
+          // ROCK_RADIUS,
+          // g_rock[CORE_URand(0,4)],
+          // true);
+    // }
 
     // Advance difficulty in level
-    g_rock_chance += (trench * EXTRA_ROCK_CHANCE_PER_PIXEL);
+    // g_rock_chance += (trench * EXTRA_ROCK_CHANCE_PER_PIXEL);
   }
   
 
