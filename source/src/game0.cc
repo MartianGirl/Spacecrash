@@ -578,6 +578,9 @@ void RunGame()
 
 void ProcessInput()
 {
+  if (g_gs == GS_DYING)
+    return;
+
   bool left = SYS_KeyPressed(SYS_KEY_LEFT);
   bool right = SYS_KeyPressed(SYS_KEY_RIGHT);
 
