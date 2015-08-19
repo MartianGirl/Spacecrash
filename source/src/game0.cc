@@ -26,12 +26,13 @@
 #define MAX_ENERGY 100.0f
 #define MAX_FUEL 100.0f
 #define ROCKET_SPEED 15.0f
+#define ROCKET_RADIUS 50.0f
 #define MIN_TIME_BETWEEN_ROCKETS 1.0f
 #define MIN_FUEL_FOR_HEAL MAX_FUEL/2.0f
 #define FUEL_HEAL_PER_FRAME 0.2f
 #define ENERGY_HEAL_PER_FRAME 0.1f
 #define JUICE_FUEL 30.0f
-#define JUICE_RADIUS 20.0f
+#define JUICE_RADIUS 50.0f
 
 #define MAIN_SHIP g_entities[MAINSHIP_ENTITY]
 
@@ -50,7 +51,9 @@
 
 #define SHIP_CRUISE_SPEED 25.0f
 #define SHIP_START_SPEED 5.0f
-#define SHIP_INC_SPEED 0.5f
+#define SHIP_INC_SPEED 0.1f
+#define SHIP_MAX_SPEED 40.0f
+#define SHIP_MIN_SPEED 10.0f
 #define HORIZONTAL_SHIP_VEL 10.0f
 #define SHIP_TILT_INC 0.2f
 #define SHIP_TILT_FRICTION 0.1f
@@ -80,38 +83,328 @@ GameState g_gs = GS_STARTING;
 float g_gs_timer = 0.0f;
 
 // Textures
-int g_ship_LL, g_ship_L, g_ship_C, g_ship_R, g_ship_RR;
-int g_bkg, g_pearl, g_energy, g_fuel, g_star, g_mine, g_juice;
-int g_rock[5];
-int g_drone[3];
+enum TexId
+{
+  T_FONT,
+  T_PARTICLE,
+  T_SHIP_LL,
+  T_SHIP_L,
+  T_SHIP_C,
+  T_SHIP_R,
+  T_SHIP_RR,
+  T_BKG0,
+  T_ROCK0,
+  T_ROCK1,
+  T_ROCK2,
+  T_ROCK3,
+  T_ROCK4,
+  T_PEARL,
+  T_ENERGY,
+  T_FUEL,
+  T_STAR,
+  T_JUICE,
+  T_ROCKET,
+  T_MINE,
+  T_DRONE0,
+  T_DRONE1,
+  T_DRONE2
+};
+
+struct Texture
+{
+  char name[100];
+  bool wrap;
+  GLuint tex;
+};
+
+Texture textures[] =
+{
+  {"res/Kromasky.bmp", false, 0},
+  {"res/Particle.bmp", false, 0},
+  {"res/ShipLL.bmp", false, 0},
+  {"res/ShipL.bmp", false, 0},
+  {"res/ShipC.bmp", false, 0},
+  {"res/ShipR.bmp", false, 0},
+  {"res/ShipRR.bmp", false, 0},
+  {"res/bkg0.bmp", false, 0},
+  {"res/Rock0.bmp", false, 0},
+  {"res/Rock1.bmp", false, 0},
+  {"res/Rock2.bmp", false, 0},
+  {"res/Rock3.bmp", false, 0},
+  {"res/Rock4.bmp", false, 0},
+  {"res/Pearl.bmp", false, 0},
+  {"res/Energy.bmp", false, 0},
+  {"res/Fuel.bmp", false, 0},
+  {"res/Star.bmp", false, 0},
+  {"res/Juice.bmp", false, 0},
+  {"res/Rocket.bmp", false, 0},
+  {"res/Mine.bmp", false, 0},
+  {"res/Drone0.bmp", false, 0},
+  {"res/Drone1.bmp", false, 0},
+  {"res/Drone2.bmp", false, 0}
+};
+
+void LoadTextures()
+{
+  for (uint i = 0; i < SIZE_ARRAY(textures); i++)
+    textures[i].tex = CORE_LoadBmp(textures[i].name, true);
+}
+
+void UnloadTextures()
+{
+  for (uint i = 0; i < SIZE_ARRAY(textures); i++)
+    CORE_UnloadBmp(textures[i].tex);
+}
+
+GLuint Tex(TexId id)
+{
+  return textures[id].tex;
+}
+
+// Particle systems manager
+enum PSType
+{
+  PST_NULL, PST_WATER, PST_FIRE, PST_SMOKE, PST_DUST, PST_GOLD
+};
+
+struct PSDef
+{
+  TexId texture;
+  bool additive;
+  int newpartsperframe;
+  int death;
+  vec2 force;
+  float startpos_random;
+  vec2 startspeed_fixed;
+  float startspeed_random;
+  float startradius_min, startradius_max;
+  rgba startcolor_fixed;
+  rgba startcolor_random;
+};
+
+// Particle system model
+PSDef psdefs[] =
+{
+  //            GFX         ADD    N  DTH  FORCE                rndPos SPEED              rndSPD Rmin  Rmax   clr                     clr-rand
+  /* null  */ { },
+  /* water */ { T_PARTICLE, true , 4, 150, vmake(0.0f, -0.025f), 4.0f, vmake(0.0f, 0.45f), 0.1f, 8.0f, 10.0f, RGBA( 64,  64, 255, 128), RGBA(0, 0, 0, 0) },
+  /* fire  */ { T_PARTICLE, true , 8,  60, vmake(0.0f, -0.045f), 4.0f, vmake(0.0f, 0.25f), 0.1f, 8.0f, 16.0f, RGBA(255, 192, 128, 128), RGBA(0, 0, 0, 0) },
+  /* smoke */ { T_PARTICLE, false, 2, 250, vmake(0.0f,  0.05f ), 4.0f, vmake(0.0f, 0.00f), 0.4f, 5.0f, 12.0f, RGBA( 64,  64,  64, 192), RGBA(0, 0, 0, 0) },
+  /* dust  */ { T_PARTICLE, false, 4, 100, vmake(0.0f,  0.05f ), 4.0f, vmake(0.0f, 0.00f), 0.4f, 3.0f,  6.0f, RGBA(192, 192, 192, 192), RGBA(0, 0, 0, 0) },
+  /* gold  */ { T_PARTICLE, true , 1,  50, vmake(0.0f,  0.00f ), 4.0f, vmake(0.0f, 0.00f), 0.3f, 3.0f,  6.0f, RGBA(192, 192,  64, 192), RGBA(0, 0, 0, 0) }
+};
+
+#define MAX_PSYSTEMS 64
+#define MAX_PARTICLES 512
+
+struct Particle
+{
+  byte active;
+  byte padding;
+  word age;
+  vec2 pos;
+  vec2 vel;
+  float radius;
+  rgba color;
+};
+
+struct PSystem
+{
+  PSType type;
+  vec2 source_pos;
+  vec2 source_vel;
+  Particle particles[MAX_PARTICLES];
+};
+
+PSystem psystems[MAX_PSYSTEMS];
+
+void ResetPSystems()
+{
+  for (int i = 0; i < MAX_PSYSTEMS; i++)
+    psystems[i].type = PST_NULL;
+}
+
+int CreatePSystem(PSType type, vec2 pos, vec2 vel)
+{
+  for (int i = 0; i < MAX_PSYSTEMS; i++)
+  {
+    if (psystems[i].type == PST_NULL)
+    {
+      psystems[i].type = type;
+      psystems[i].source_pos = pos;
+      psystems[i].source_vel = vel;
+      for (int j = 0; j < MAX_PARTICLES; j++)
+        psystems[i].particles[j].active = 0;
+      return i;
+    }
+  }
+
+  return -1;
+}
+
+void KillPSystem(int ix)
+{
+  if (ix >= 0 && ix < MAX_PSYSTEMS)
+    psystems[ix].type = PST_NULL;
+}
+
+void SetPSystemSource(int ix, vec2 pos, vec2 vel)
+{
+  if (ix >= 0 && ix < MAX_PSYSTEMS)
+  {
+    psystems[ix].source_pos = pos;
+    psystems[ix].source_vel = vel;
+  }
+}
+
+void RenderPSystems(vec2 offset)
+{
+  glEnable(GL_BLEND);
+  for (int i = 0; i < MAX_PSYSTEMS; i++)
+  {
+    if (psystems[i].type != PST_NULL)
+    {
+      if (psdefs[psystems[i].type].additive)
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE);
+      else
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+      glBindTexture(GL_TEXTURE_2D, CORE_GetBmpOpenGLTex(Tex(psdefs[psystems[i].type].texture)));
+      glBegin(GL_QUADS);
+
+      for (int j = 0; j < MAX_PARTICLES; j++)
+      {
+        if (psystems[i].particles[j].active)
+        {
+          vec2 pos = psystems[i].particles[j].pos;
+          float radius = psystems[i].particles[j].radius;
+          vec2 p0 = vsub(pos, vmake(radius, radius));
+          vec2 p1 = vadd(pos, vmake(radius, radius));
+          rgba color = psystems[i].particles[j].color;
+          float r = color.r;
+          float g = color.g;
+          float b = color.b;
+          float a = color.a;
+
+          glColor4f(r, g, b, a);
+
+          glTexCoord2d(0.0, 0.0);
+          glVertex2f(p0.x + offset.x, p0.y + offset.y);
+
+          glTexCoord2d(1.0, 0.0);
+          glVertex2f(p1.x + offset.x, p0.y + offset.y);
+
+          glTexCoord2d(1.0, 1.0);
+          glVertex2f(p1.x + offset.x, p1.y + offset.y);
+
+          glTexCoord2d(0.0, 1.0);
+          glVertex2f(p0.x + offset.x, p1.y + offset.y);
+        }
+      }
+      glEnd();
+    }
+  }
+
+  glColor4f(1.0f, 1.0f, 1.0f, 1.0f);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+void RunPSystems()
+{
+  for (int i = 0; i < MAX_PSYSTEMS; i++)
+  {
+    if (psystems[i].type != PST_NULL)
+    {
+      // New particles
+      for (int j = 0; j < psdefs[psystems[i].type].newpartsperframe; j++)
+      {
+        for (int k = 0; k < MAX_PARTICLES; k++)
+        {
+          if (!psystems[i].particles[k].active)
+          {
+            psystems[i].particles[k].active = 1;
+            psystems[i].particles[k].age = 0;
+            psystems[i].particles[k].pos =
+              vadd(psystems[i].source_pos,
+                  vmake(
+                    CORE_FRand(-psdefs[psystems[i].type].startpos_random,
+                      psdefs[psystems[i].type].startpos_random),
+                    CORE_FRand(-psdefs[psystems[i].type].startpos_random,
+                      psdefs[psystems[i].type].startpos_random)));
+            psystems[i].particles[k].vel =
+              vadd(psystems[i].source_vel,
+                  vmake(
+                    psdefs[psystems[i].type].startspeed_fixed.x
+                    + CORE_FRand(-psdefs[psystems[i].type].startspeed_random,
+                      psdefs[psystems[i].type].startspeed_random),
+                    psdefs[psystems[i].type].startspeed_fixed.y
+                    + CORE_FRand(-psdefs[psystems[i].type].startspeed_random,
+                      psdefs[psystems[i].type].startspeed_random)));
+            psystems[i].particles[k].radius = CORE_FRand(
+                psdefs[psystems[i].type].startradius_min,
+                psdefs[psystems[i].type].startradius_max);
+            psystems[i].particles[k].color =
+              psdefs[psystems[i].type].startcolor_fixed;
+            break; // Added!
+          }
+        }
+      }
+
+      // Run particles
+      for (int k = 0; k < MAX_PARTICLES; k++)
+      {
+        if (psystems[i].particles[k].active)
+        {
+          psystems[i].particles[k].age++;
+          if (psystems[i].particles[k].age > psdefs[psystems[i].type].death)
+            psystems[i].particles[k].active = 0;
+          else
+          {
+            // Move
+            psystems[i].particles[k].pos =
+              vadd(psystems[i].particles[k].pos, psystems[i].particles[k].vel);
+            psystems[i].particles[k].vel =
+              vadd(psystems[i].particles[k].vel, psdefs[psystems[i].type].force);
+
+            // Color
+            psystems[i].particles[k].color.a =
+              (psdefs[psystems[i].type].death - psystems[i].particles[k].age) / 255.0f;
+          }
+        }
+      }
+    }
+  }
+}
 
 // Entities
-enum EType { E_NULL, E_MAIN, E_ROCKET, E_ROCK, E_STAR, E_MINE, E_JUICE, E_DRONE };
+enum EType { E_NULL, E_MAIN, E_ROCK, E_STAR, E_JUICE, E_ROCKET, E_MINE, E_DRONE };
 #define MAX_ENTITIES 64
 
 struct Entity
 {
-  EType  type;
-  vec2   pos;
-  vec2   vel;
-  float  radius;
-  float  energy;
-  float  fuel;
-  float  tilt;
-  float  gfxscale;
-  int    gfx;
-  bool   gfxadditive;
-  rgba   color;
-  bool   has_shadow;
+  EType type;
+  vec2 pos;
+  vec2 vel;
+  float radius;
+  float energy;
+  float fuel;
+  float tilt;
+  float gfxscale;
+  TexId gfx;
+  bool gfxadditive;
+  rgba color;
+  bool has_shadow;
+  int psystem;
+  vec2 psystem_off;
 };
-Entity   g_entities[MAX_ENTITIES];
+Entity g_entities[MAX_ENTITIES];
 
-void InsertEntity(
+int InsertEntity(
     EType type,
     vec2 pos,
     vec2 vel,
     float radius,
-    int gfx,
+    TexId gfx,
     bool has_shadow,
     bool additive = false)
 {
@@ -131,58 +424,73 @@ void InsertEntity(
       g_entities[i].gfxadditive = additive;
       g_entities[i].color = COLOR_WHITE;
       g_entities[i].has_shadow = has_shadow;
-      break;
+      g_entities[i].psystem = -1;
+      g_entities[i].psystem_off = vmake(0.0f, 0.0f);
+      return i;
     }
+  }
+  return -1;
+}
+
+void KillEntity(int ix)
+{
+  if (ix >= 0 && ix <= MAX_ENTITIES)
+  {
+    g_entities[ix].type = E_NULL;
+    if (g_entities[ix].psystem >= 0)
+      KillPSystem(g_entities[ix].psystem);
   }
 }
 
-void LoadResources()
+// Sound engine
+#define SND_DEFAULT_VOL 1.0f
+enum SoundId
 {
-  // Resources
-  g_ship_LL = CORE_LoadBmp("res/ShipLL.bmp", false);
-  g_ship_L = CORE_LoadBmp("res/ShipL.bmp", false);
-  g_ship_C = CORE_LoadBmp("res/ShipC.bmp", false);
-  g_ship_R = CORE_LoadBmp("res/ShipR.bmp", false);
-  g_ship_RR = CORE_LoadBmp("res/ShipRR.bmp", false);
-  g_bkg = CORE_LoadBmp("res/bkg0.bmp", false);
-  g_rock[0] = CORE_LoadBmp("res/Rock0.bmp", false);
-  g_rock[1] = CORE_LoadBmp("res/Rock1.bmp", false);
-  g_rock[2] = CORE_LoadBmp("res/Rock2.bmp", false);
-  g_rock[3] = CORE_LoadBmp("res/Rock3.bmp", false);
-  g_rock[4] = CORE_LoadBmp("res/Rock4.bmp", false);
-  g_pearl = CORE_LoadBmp("res/Pearl.bmp", false);
-  g_energy = CORE_LoadBmp("res/Energy.bmp", false);
-  g_fuel = CORE_LoadBmp("res/Fuel.bmp", false);
-  g_star = CORE_LoadBmp("res/Star.bmp", false);
-  g_mine = CORE_LoadBmp("res/Mine.bmp", false);
-  g_juice = CORE_LoadBmp("res/Juice.bmp", false);
-  g_drone[0] = CORE_LoadBmp("res/Drone0.bmp", false);
-  g_drone[1] = CORE_LoadBmp("res/Drone1.bmp", false);
-  g_drone[2] = CORE_LoadBmp("res/Drone2.bmp", false);
+  SND_THUMP,
+  SND_EXPLOSION,
+  SND_ENGINE,
+  SND_SUCCESS
+};
+
+struct Sound
+{
+  char name[100];
+  int bufid;
+};
+
+Sound sounds[] =
+{
+  {"res/410__tictacshutup__thump-1.wav", 0},
+  {"res/94185__nbs-dark__explosion.wav", 0},
+  {"res/ffff.wav", 0},
+  {"res/171671__fins__success-1.wav", 0}
+};
+
+void LoadSounds()
+{
+  for (uint i = 0; i < SIZE_ARRAY(sounds); i++)
+    sounds[i].bufid = CORE_LoadWav(sounds[i].name);
 }
 
-void UnloadResources()
+void UnloadSounds()
 {
-  CORE_UnloadBmp(g_ship_LL);
-  CORE_UnloadBmp(g_ship_L);
-  CORE_UnloadBmp(g_ship_C);
-  CORE_UnloadBmp(g_ship_R);
-  CORE_UnloadBmp(g_ship_RR);
-  CORE_UnloadBmp(g_bkg);
-  CORE_UnloadBmp(g_rock[0]);
-  CORE_UnloadBmp(g_rock[1]);
-  CORE_UnloadBmp(g_rock[2]);
-  CORE_UnloadBmp(g_rock[3]);
-  CORE_UnloadBmp(g_rock[4]);
-  CORE_UnloadBmp(g_pearl);
-  CORE_UnloadBmp(g_energy);
-  CORE_UnloadBmp(g_fuel);
-  CORE_UnloadBmp(g_star);
-  CORE_UnloadBmp(g_mine);
-  CORE_UnloadBmp(g_juice);
-  CORE_UnloadBmp(g_drone[0]);
-  CORE_UnloadBmp(g_drone[1]);
-  CORE_UnloadBmp(g_drone[2]);
+  for (uint i = 0; i < SIZE_ARRAY(sounds); i++)
+    CORE_UnloadWav(sounds[i].bufid);
+}
+
+void PlaySound(SoundId id, float vol = SND_DEFAULT_VOL, float freq = 1.0f)
+{
+  CORE_PlaySound(sounds[id].bufid, vol, freq);
+}
+
+void PlayLoopSound(unsigned loopchannel, SoundId id, float vol, float pitch)
+{
+  CORE_PlayLoopSound(loopchannel, sounds[id].bufid, vol, pitch);
+}
+
+void SetLoopSoundParam(unsigned loopchannel, float vol, float pitch)
+{
+  CORE_SetLoopSoundParam(loopchannel, vol, pitch);
 }
 
 void Render()
@@ -200,7 +508,7 @@ void Render()
             vmake(0.0f, (float) i * G_HEIGHT)),
           vmake(0.0f, g_camera_offset)),
         vmake(G_WIDTH, G_HEIGHT),
-        g_bkg);
+        Tex(T_BKG0));
   }
 
   // Draw entities
@@ -208,7 +516,7 @@ void Render()
   {
     if (g_entities[i].type != E_NULL)
     {
-      ivec2 sz = CORE_GetBmpSize(g_entities[i].gfx);
+      ivec2 sz = CORE_GetBmpSize(Tex(g_entities[i].gfx));
       vec2 pos = g_entities[i].pos;
       pos.x = (float)((int)pos.x);
       pos.y = (float)((int)pos.y);
@@ -221,8 +529,8 @@ void Render()
             vmake(
               sz.x * SPRITE_SCALE * g_entities[i].gfxscale * SHADOW_SCALE,
               sz.y * SPRITE_SCALE * g_entities[i].gfxscale * SHADOW_SCALE),
-            g_entities[i].gfx,
-            vmake(0.0f, 0.0f, 0.0f, 0.4f),
+            Tex(g_entities[i].gfx),
+            makergba(0.0f, 0.0f, 0.0f, 0.4f),
             g_entities[i].gfxadditive);
 
       CORE_RenderCenteredSprite(
@@ -230,11 +538,13 @@ void Render()
           vmake(
             sz.x * SPRITE_SCALE * g_entities[i].gfxscale,
             sz.y * SPRITE_SCALE * g_entities[i].gfxscale),
-          g_entities[i].gfx,
+          Tex(g_entities[i].gfx),
           g_entities[i].color,
           g_entities[i].gfxadditive);
     }
   }
+
+  RenderPSystems(vmake(0.f, -g_camera_offset));
 
   if (g_gs != GS_VICTORY)
   {
@@ -243,7 +553,7 @@ void Render()
     CORE_RenderCenteredSprite(
         vmake(ENERGY_BAR_W/2.0f, energy_ratio * ENERGY_BAR_H / 2.0f),
         vmake(ENERGY_BAR_W, ENERGY_BAR_H * energy_ratio),
-        g_energy,
+        Tex(T_ENERGY),
         COLOR_WHITE,
         true);
 
@@ -251,7 +561,9 @@ void Render()
     CORE_RenderCenteredSprite(
         vmake(G_WIDTH - FUEL_BAR_W/2.0f, fuel_ratio * FUEL_BAR_H / 2.0f),
         vmake(FUEL_BAR_W, FUEL_BAR_H * fuel_ratio),
-        g_fuel, COLOR_WHITE, true);
+        Tex(T_FUEL),
+        COLOR_WHITE,
+        true);
 
     // Draw how long have you lasted
     int num_chunks = (int)((g_current_race_pos / RACE_END) * MAX_CHUNKS);
@@ -259,7 +571,7 @@ void Render()
       CORE_RenderCenteredSprite(
           vmake(G_WIDTH - 100.0f, 50.0f + i * 50.0f),
           vmake(CHUNK_W, CHUNK_H),
-          g_pearl);
+          Tex(T_PEARL));
   }
 }
 
@@ -311,7 +623,7 @@ void GenNextElements()
       {
         // Find a valid pos!
         vec2 rockpos;
-        for(;;)
+        for (int k = 0; k < 10; k++)  // 10 attempts maximum, avoid infinite loops!
         {
           rockpos = vmake(CORE_FRand(0.0f, G_WIDTH), current_y);
           if (rockpos.x + ROCK_RADIUS < g_last_conditioned.x - PATH_WIDTH
@@ -321,9 +633,9 @@ void GenNextElements()
 
         // Insert obstacle
         EType t = E_ROCK;
-        int gfx = g_rock[1/*CORE_URand(0,4)*/];
-        if (CORE_RandChance(0.1f)) { t = E_MINE; gfx = g_mine; }
-        else if (CORE_RandChance(0.1f)) { t = E_DRONE; gfx = g_drone[0]; }
+        TexId gfx = T_ROCK1;
+        if (CORE_RandChance(0.1f)) { t = E_MINE; gfx = T_MINE; }
+        else if (CORE_RandChance(0.1f)) { t = E_DRONE; gfx = T_DRONE2; }
         InsertEntity(t,
             rockpos,
             vmake(CORE_FRand(-0.5f, +0.5f), CORE_FRand(-0.5f, +0.5f)),
@@ -352,7 +664,6 @@ void ResetNewGame()
   g_rock_chance = START_ROCK_CHANCE_PER_PIXEL;
   g_gs = GS_STARTING;
   g_gs_timer = 0.0f;
-  g_time_from_last_rocket = 0.0f;
 
   // Start logic
   for (int i = 0; i < MAX_ENTITIES; i++)
@@ -363,8 +674,15 @@ void ResetNewGame()
       vmake(G_WIDTH/2.0, G_HEIGHT/8.0f), 
       vmake(0.0f, SHIP_START_SPEED), 
       MAINSHIP_RADIUS, 
-      g_ship_C,
+      T_SHIP_C,
       true);
+
+  PlayLoopSound(1, SND_ENGINE, 0.7f, 0.3f);
+
+  ResetPSystems();
+
+  MAIN_SHIP.psystem = CreatePSystem(PST_FIRE, MAIN_SHIP.pos, vmake(0.0f, 0.0f));
+  MAIN_SHIP.psystem_off = vmake(0.0f, -120.0f);
 }
 
 void RunGame()
@@ -377,6 +695,10 @@ void RunGame()
 
     MAIN_SHIP.fuel = SAFESUB(MAIN_SHIP.fuel, FRAME_FUEL_COST);
   }
+
+  SetLoopSoundParam(1, 0.7f, 0.4f + 0.2f * 
+      (MAIN_SHIP.vel.y - SHIP_START_SPEED) / 
+      (SHIP_CRUISE_SPEED - SHIP_START_SPEED));
 
   // Heal main ship
   if (g_gs != GS_DYING)
@@ -398,7 +720,12 @@ void RunGame()
 
       // Remove entities that fell off the screen
       if (g_entities[i].pos.y < g_camera_offset - G_HEIGHT)
-        g_entities[i].type = E_NULL;
+        KillEntity(i);
+
+      if (g_entities[i].psystem != -1)
+        SetPSystemSource(g_entities[i].psystem,
+            vadd(g_entities[i].pos, g_entities[i].psystem_off),
+            g_entities[i].vel);
     }
   }
 
@@ -410,6 +737,9 @@ void RunGame()
       g_entities[i].gfxscale *= 1.008f;
     }
   }
+
+  // Advance particle systems
+  RunPSystems();
 
   // Dont let steering off the screen!
   if (MAIN_SHIP.pos.x < MAINSHIP_RADIUS)
@@ -437,6 +767,7 @@ void RunGame()
             case E_ROCK:
               if (g_entities[i].energy > 0)
               {
+                PlaySound(SND_THUMP);
                 MAIN_SHIP.energy =
                   SAFESUB(MAIN_SHIP.energy, ROCK_CRASH_ENERGY_LOSS);
                 MAIN_SHIP.vel.y = SHIP_START_SPEED;
@@ -449,19 +780,20 @@ void RunGame()
 
             case E_JUICE:
               MAIN_SHIP.fuel = SAFEADD(MAIN_SHIP.fuel, JUICE_FUEL, MAX_FUEL);
-              g_entities[i].type = E_NULL;
+              KillEntity(i);
               break;
 
             case E_MINE:
+              PlaySound(SND_EXPLOSION);
               MAIN_SHIP.energy = SAFESUB(MAIN_SHIP.energy, MINE_CRASH_ENERGY_LOSS);
               MAIN_SHIP.vel.y = SHIP_START_SPEED;
-              g_entities[i].type = E_NULL;
+              KillEntity(i);
               break;
 
             case E_DRONE:
               MAIN_SHIP.energy = SAFESUB(MAIN_SHIP.energy, MINE_CRASH_ENERGY_LOSS);
               MAIN_SHIP.vel.y = SHIP_START_SPEED;
-              g_entities[i].type = E_NULL;
+              KillEntity(i);
               break;
 
             default:
@@ -482,15 +814,21 @@ void RunGame()
             if (vlen2(vsub(g_entities[i].pos, g_entities[j].pos))
                 < CORE_FSquare(g_entities[i].radius + g_entities[j].radius))
             {
-              g_entities[i].type = E_NULL;
-              g_entities[j].type = E_NULL;
-            }
+              // Rocket hit the target!
+              switch (g_entities[j].type)
+              {
+                case E_MINE:
+                  PlaySound(SND_EXPLOSION);
+                  break;
+                default:
+                  break;
+              }
 
-            // Rocket hit the target!
-            /*switch (g_entities[j].type)
-             * {
-             * }*/
-            break;  // Stop checking rocks!
+              KillEntity(i);
+              KillEntity(j);
+
+              break;  // Stop checking rocks!
+            }
           }
         }
       }
@@ -504,13 +842,12 @@ void RunGame()
   if (g_gs == GS_PLAYING)
   {
     float trench = MAIN_SHIP.pos.y - g_current_race_pos; // How much advanced from previous frame
-
     if (CORE_RandChance(trench * JUICE_CHANCE_PER_PIXEL))
       InsertEntity(E_JUICE,
           vmake(CORE_FRand(0.0f, G_WIDTH), g_camera_offset + G_HEIGHT + GEN_IN_ADVANCE),
           vmake(CORE_FRand(-1.0f, +1.0f), CORE_FRand(-1.0f, +1.0f)),
           JUICE_RADIUS,
-          g_juice,
+          T_JUICE,
           false,
           true);
   }
@@ -526,6 +863,7 @@ void RunGame()
       g_gs = GS_VICTORY;
       g_gs_timer = 0.0f;
       MAIN_SHIP.gfxadditive = true;
+      PlaySound(SND_SUCCESS);
     }
   }
 
@@ -553,7 +891,7 @@ void RunGame()
       {
         g_gs = GS_DYING;
         g_gs_timer = 0.0f;
-        MAIN_SHIP.gfx = g_ship_RR;
+        MAIN_SHIP.gfx = T_SHIP_RR;
       }
       break;
 
@@ -565,7 +903,7 @@ void RunGame()
                 CORE_FRand(-5.0f, 5.0f),
                 CORE_FRand(-5.0f, 5.0f))),
             0,
-            g_star,
+            T_STAR,
             false,
             true);
       if (g_gs_timer >= VICTORY_TIME)
@@ -578,39 +916,60 @@ void RunGame()
 
 void ProcessInput()
 {
-  if (g_gs == GS_DYING)
-    return;
-
-  bool left = SYS_KeyPressed(SYS_KEY_LEFT);
-  bool right = SYS_KeyPressed(SYS_KEY_RIGHT);
-
-  if (left && !right)
+  if (g_gs == GS_PLAYING)
   {
-    MAIN_SHIP.fuel = SAFESUB(MAIN_SHIP.fuel, TILT_FUEL_COST);
-    MAIN_SHIP.tilt -= SHIP_TILT_INC;
+    if (SYS_KeyPressed(' ') && g_time_from_last_rocket > MIN_TIME_BETWEEN_ROCKETS)
+    {
+      int e = InsertEntity(E_ROCKET,
+          MAIN_SHIP.pos,
+          vadd(MAIN_SHIP.vel, vmake(0.0f, ROCKET_SPEED)),
+          ROCKET_RADIUS, 
+          T_ROCKET, 
+          true);
+      g_time_from_last_rocket = 0;
+
+      g_entities[e].psystem = CreatePSystem(PST_FIRE, MAIN_SHIP.pos, vmake(0.0f, 0.0f));
+      g_entities[e].psystem_off = vmake(0.0f, -120.0f);
+    }
+
+    bool up = SYS_KeyPressed(SYS_KEY_UP);
+    bool down = SYS_KeyPressed(SYS_KEY_DOWN);
+    bool left = SYS_KeyPressed(SYS_KEY_LEFT);
+    bool right = SYS_KeyPressed(SYS_KEY_RIGHT);
+
+    // Left-right movement
+    if (left && !right)
+    {
+      MAIN_SHIP.fuel = SAFESUB(MAIN_SHIP.fuel, TILT_FUEL_COST);
+      MAIN_SHIP.tilt -= SHIP_TILT_INC;
+    }
+    if (right && !left)
+    {
+      MAIN_SHIP.fuel = SAFESUB(MAIN_SHIP.fuel, TILT_FUEL_COST);
+      MAIN_SHIP.tilt += SHIP_TILT_INC;
+    }
+    if (!left && !right)
+      MAIN_SHIP.tilt *= (1.0 - SHIP_TILT_FRICTION);
+
+    if (MAIN_SHIP.tilt <= -SHIP_MAX_TILT) MAIN_SHIP.tilt = -SHIP_MAX_TILT;
+    if (MAIN_SHIP.tilt >=  SHIP_MAX_TILT) MAIN_SHIP.tilt =  SHIP_MAX_TILT;
+
+    MAIN_SHIP.vel.x += MAIN_SHIP.tilt;
+    MAIN_SHIP.vel.x *= (1.0f - SHIP_HVEL_FRICTION);
+
+    // Accelerate/slowdown
+    if (up & !down) MAIN_SHIP.vel.y += SHIP_INC_SPEED;
+    if (down & !up) MAIN_SHIP.vel.y -= SHIP_INC_SPEED;
+    if (MAIN_SHIP.vel.y > SHIP_MAX_SPEED) MAIN_SHIP.vel.y = SHIP_MAX_SPEED;
+    if (MAIN_SHIP.vel.y < SHIP_MIN_SPEED) MAIN_SHIP.vel.y = SHIP_MIN_SPEED;
+
+    float tilt = MAIN_SHIP.tilt;
+    if      (tilt < -0.6f * SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_LL;
+    else if (tilt < -0.2f * SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_L;
+    else if (tilt < +0.2f * SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_C;
+    else if (tilt < +0.6f + SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_R;
+    else                                   MAIN_SHIP.gfx = T_SHIP_RR;
   }
-
-  if (right && !left)
-  {
-    MAIN_SHIP.fuel = SAFESUB(MAIN_SHIP.fuel, TILT_FUEL_COST);
-    MAIN_SHIP.tilt += SHIP_TILT_INC;
-  }
-  
-  if (!left && !right)
-    MAIN_SHIP.tilt *= (1.0 - SHIP_TILT_FRICTION);
-
-  if (MAIN_SHIP.tilt <= -SHIP_MAX_TILT) MAIN_SHIP.tilt = -SHIP_MAX_TILT;
-  if (MAIN_SHIP.tilt >=  SHIP_MAX_TILT) MAIN_SHIP.tilt =  SHIP_MAX_TILT;
-
-  MAIN_SHIP.vel.x += MAIN_SHIP.tilt;
-  MAIN_SHIP.vel.x *= (1.0f - SHIP_HVEL_FRICTION);
-
-  float tilt = MAIN_SHIP.tilt;
-  if      (tilt < -0.6f * SHIP_MAX_TILT) MAIN_SHIP.gfx = g_ship_LL;
-  else if (tilt < -0.2f * SHIP_MAX_TILT) MAIN_SHIP.gfx = g_ship_L;
-  else if (tilt < +0.2f * SHIP_MAX_TILT) MAIN_SHIP.gfx = g_ship_C;
-  else if (tilt < +0.6f + SHIP_MAX_TILT) MAIN_SHIP.gfx = g_ship_R;
-  else                                   MAIN_SHIP.gfx = g_ship_RR;
 }
 
 // Game state (apart from entities & other standalone modules)
@@ -620,7 +979,9 @@ float g_time = 0.0f;
 int Main(void)
 {
   // Start things up & load resources
-  LoadResources();
+  CORE_InitSound();
+  LoadTextures();
+  LoadSounds();
   ResetNewGame();
 
   // Set up rendering
@@ -643,7 +1004,10 @@ int Main(void)
     SYS_Sleep(16);
     g_time += FRAMETIME;
   }
-  UnloadResources();
+
+  UnloadSounds();
+  UnloadTextures();
+  CORE_EndSound();
 
   return 0;
 }
