@@ -23,6 +23,11 @@ inline float CORE_FSquare(float f)
   return f * f;
 }
 
+inline int UMod(int ix, int n)
+{
+  return (int) ((unsigned)ix % (unsigned)n);
+}
+
 // Colors
 struct rgba { float r, g, b, a; };
 inline rgba makergba(float r, float g, float b, float a)

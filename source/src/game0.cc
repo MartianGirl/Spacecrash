@@ -4,13 +4,6 @@
 #include "sys.h"
 #include "core.h"
 
-#define SAFESUB(ARG_BASE, ARG_CHUNK)          (ARG_BASE - ARG_CHUNK > 0        ? ARG_BASE - ARG_CHUNK : 0)
-#define SAFEADD(ARG_BASE, ARG_CHUNK, ARG_MAX) (ARG_BASE + ARG_CHUNK <= ARG_MAX ? ARG_BASE + ARG_CHUNK : ARG_MAX)
-#define MAX(ARG_A, ARG_B) ((ARG_A)>(ARG_B)?(ARG_A):(ARG_B))
-#define MIN(ARG_A, ARG_B) ((ARG_A)<(ARG_B)?(ARG_A):(ARG_B))
-
-#define LOG(ALL_ARGS) printf ALL_ARGS
-
 #define SPRITE_SCALE 8.0f
 #define SHADOW_OFFSET 80.0f
 #define SHADOW_SCALE 0.9f
@@ -108,41 +101,61 @@ enum TexId
   T_DRONE0,
   T_DRONE1,
   T_DRONE2,
-  T_TILES_G_ON_S, T_SSSS = T_TILES_G_ON_S,
-  T_SSSG, T_SSGS, T_SSGG, T_SGSS, T_SGSG, T_SGGS, T_SGGG,
-  T_GSSS, T_GSSG, T_GSGS, T_GSGG, T_GGSS, T_GGSG, T_GGGS, T_GGGG, 
 
-  T_TILES_P_ON_S, T_SSSS = T_TILES_P_ON_S,
-  T_SSSP, T_SSPS, T_SSPP, T_SPSS, T_SPSP, T_SPPS, T_SPPP,
-  T_PSSS, T_PSSP, T_PSPS, T_PSPP, T_PPSS, T_PPSP, T_PPPS, T_PPPP, 
-
-  T_TILES_D_ON_S, T_SSSS = T_TILES_D_ON_S,
-  T_SSSD, T_SSDS, T_SSDD, T_SDSS, T_SDSD, T_SDDS, T_SDDD,
-  T_DSSS, T_DSSD, T_DSDS, T_DSDD, T_DDSS, T_DDSD, T_DDDS, T_DDDD, 
-
-  T_TILES_E_ON_D, T_DDDD = T_TILES_E_ON_D,
-  T_DDDE, T_DDED, T_DDEE, T_DEDD, T_DEDE, T_DEED, T_DEEE,
-  T_EDDD, T_EDDE, T_EDED, T_EDEE, T_EEDD, T_EEDE, T_EEED, T_EEEE, 
-
-  T_TILES_I_ON_W, T_WWWW = T_TILES_I_ON_W,
-  T_WWWI, T_WWIW, T_WWII, T_WIWW, T_WIWI, T_WIIW, T_WIII,
-  T_IWWW, T_IWWI, T_IWIW, T_IWII, T_IIWW, T_IIWI, T_IIIW, T_IIII, 
-
-  T_TILES_Y_ON_X, T_XXXX = T_TILES_Y_ON_X,
-  T_XXXY, T_XXYX, T_XXYY, T_XYXX, T_XYXY, T_XYYX, T_XYYY,
-  T_YXXX, T_YXXY, T_YXYX, T_YXYY, T_YYXX, T_YYXY, T_YYYX, T_YYYY, 
-
-  T_TILES_R_ON_L, T_LLLL = T_TILES_R_ON_L,
-  T_LLLR, T_LLRL, T_LLRR, T_LRLL, T_LRLR, T_LRRL, T_LRRR,
-  T_RLLL, T_RLLR, T_RLRL, T_RLRR, T_RRLL, T_RRLR, T_RRRL, T_RRRR, 
-
-  T_TILES_V_ON_K, T_KKKK = T_TILES_V_ON_K,
-  T_KKKV, T_KKVK, T_KKVV, T_KVKK, T_KVKV, T_KVVK, T_KVVV,
-  T_VKKK, T_VKKV, T_VKVK, T_VKVV, T_VVKK, T_VVKV, T_VVVK, T_VVVV, 
-
-  T_TILES_B_ON_K, T_KKKK = T_TILES_B_ON_K,
-  T_KKKB, T_KKBK, T_KKBB, T_KBKK, T_KBKB, T_KBBK, T_KBBB,
-  T_BKKK, T_BKKB, T_BKBK, T_BKBB, T_BBKK, T_BBKB, T_BBBK, T_BBBB
+  // Tiles
+  T_TILES_G_ON_S,
+  T_SSSS   = T_TILES_G_ON_S, T_SSSG, T_SSGS, T_SSGG,
+  T_SGSS,                    T_SGSG, T_SGGS, T_SGGG,
+  T_GSSS,                    T_GSSG, T_GSGS, T_GSGG,
+  T_GGSS,                    T_GGSG, T_GGGS, T_GGGG,
+  
+  T_TILES_D_ON_S,
+  T_SSSS_2 = T_TILES_D_ON_S, T_SSSD, T_SSDS, T_SSDD,
+  T_SDSS,                    T_SDSD, T_SDDS, T_SDDD,
+  T_DSSS,                    T_DSSD, T_DSDS, T_DSDD,
+  T_DDSS,                    T_DDSD, T_DDDS, T_DDDD,
+  
+  T_TILES_E_ON_D,
+  T_DDDD_2 = T_TILES_E_ON_D, T_DDDE, T_DDED, T_DDEE,
+  T_DEDD,                    T_DEDE, T_DEED, T_DEEE,
+  T_EDDD,                    T_EDDE, T_EDED, T_EDEE,
+  T_EEDD,                    T_EEDE, T_EEED, T_EEEE,
+  
+  T_TILES_P_ON_S,
+  T_SSSS_3 = T_TILES_P_ON_S, T_SSSP, T_SSPS, T_SSPP,
+  T_SPSS,                    T_SPSP, T_SPPS, T_SPPP,
+  T_PSSS,                    T_PSSP, T_PSPS, T_PSPP,
+  T_PPSS,                    T_PPSP, T_PPPS, T_PPPP,
+  
+  T_TILES_I_ON_W,
+  T_WWWW   = T_TILES_I_ON_W, T_WWWI, T_WWIW, T_WWII,
+  T_WIWW,                    T_WIWI, T_WIIW, T_WIII,
+  T_IWWW,                    T_IWWI, T_IWIW, T_IWII,
+  T_IIWW,                    T_IIWI, T_IIIW, T_IIII,
+  
+  T_TILES_R_ON_L,
+  T_LLLL   = T_TILES_R_ON_L, T_LLLR, T_LLRL, T_LLRR,
+  T_LRLL,                    T_LRLR, T_LRRL, T_LRRR,
+  T_RLLL,                    T_RLLR, T_RLRL, T_RLRR,
+  T_RRLL,                    T_RRLR, T_RRRL, T_RRRR,
+  
+  T_TILES_Y_ON_X,
+  T_XXXX   = T_TILES_Y_ON_X, T_XXXY, T_XXYX, T_XXYY,
+  T_XYXX,                    T_XYXY, T_XYYX, T_XYYY,
+  T_YXXX,                    T_YXXY, T_YXYX, T_YXYY,
+  T_YYXX,                    T_YYXY, T_YYYX, T_YYYY,
+  
+  T_TILES_V_ON_K,
+  T_KKKK_2 = T_TILES_V_ON_K, T_KKKV, T_KKVK, T_KKVV,
+  T_KVKK,                    T_KVKV, T_KVVK, T_KVVV,
+  T_VKKK,                    T_VKKV, T_VKVK, T_VKVV,
+  T_VVKK,                    T_VVKV, T_VVVK, T_VVVV,
+  
+  T_TILES_B_ON_K,
+  T_KKKK   = T_TILES_B_ON_K, T_KKKB, T_KKBK, T_KKBB,
+  T_KBKK,                    T_KBKB, T_KBBK, T_KBBB,
+  T_BKKK,                    T_BKKB, T_BKBK, T_BKBB,
+  T_BBKK,                    T_BBKB, T_BBBK, T_BBBB
 };
 
 struct Texture
@@ -176,7 +189,170 @@ Texture textures[] =
   {"res/Mine.bmp", false, 0},
   {"res/Drone0.bmp", false, 0},
   {"res/Drone1.bmp", false, 0},
-  {"res/Drone2.bmp", false, 0}
+  {"res/Drone2.bmp", false, 0},
+
+  // Terrain tiles
+  // Sand-grass
+  { "res/tiles/sg/ssss.bmp"  , false, 0 },
+  { "res/tiles/sg/sssg.bmp"  , false, 0 },
+  { "res/tiles/sg/ssgs.bmp"  , false, 0 },
+  { "res/tiles/sg/ssgg.bmp"  , false, 0 },
+  { "res/tiles/sg/sgss.bmp"  , false, 0 },
+  { "res/tiles/sg/sgsg.bmp"  , false, 0 },
+  { "res/tiles/sg/sggs.bmp"  , false, 0 },
+  { "res/tiles/sg/sggg.bmp"  , false, 0 },
+  { "res/tiles/sg/gsss.bmp"  , false, 0 },
+  { "res/tiles/sg/gssg.bmp"  , false, 0 },
+  { "res/tiles/sg/gsgs.bmp"  , false, 0 },
+  { "res/tiles/sg/gsgg.bmp"  , false, 0 },
+  { "res/tiles/sg/ggss.bmp"  , false, 0 },
+  { "res/tiles/sg/ggsg.bmp"  , false, 0 },
+  { "res/tiles/sg/gggs.bmp"  , false, 0 },
+  { "res/tiles/sg/gggg1.bmp" , false, 0 },
+  
+  // Sand-dark
+  { "res/tiles/sd/ssss.bmp"  , false, 0 },
+  { "res/tiles/sd/sssd.bmp"  , false, 0 },
+  { "res/tiles/sd/ssds.bmp"  , false, 0 },
+  { "res/tiles/sd/ssdd.bmp"  , false, 0 },
+  { "res/tiles/sd/sdss.bmp"  , false, 0 },
+  { "res/tiles/sd/sdsd.bmp"  , false, 0 },
+  { "res/tiles/sd/sdds.bmp"  , false, 0 },
+  { "res/tiles/sd/sddd.bmp"  , false, 0 },
+  { "res/tiles/sd/dsss.bmp"  , false, 0 },
+  { "res/tiles/sd/dssd.bmp"  , false, 0 },
+  { "res/tiles/sd/dsds.bmp"  , false, 0 },
+  { "res/tiles/sd/dsdd.bmp"  , false, 0 },
+  { "res/tiles/sd/ddss.bmp"  , false, 0 },
+  { "res/tiles/sd/ddsd.bmp"  , false, 0 },
+  { "res/tiles/sd/ddds.bmp"  , false, 0 },
+  { "res/tiles/sd/dddd.bmp"  , false, 0 },
+  
+  // Elevated-dark
+  { "res/tiles/de/dddd.bmp"  , false, 0 },
+  { "res/tiles/de/ddde.bmp"  , false, 0 },
+  { "res/tiles/de/dded.bmp"  , false, 0 },
+  { "res/tiles/de/ddee.bmp"  , false, 0 },
+  { "res/tiles/de/dedd.bmp"  , false, 0 },
+  { "res/tiles/de/dede.bmp"  , false, 0 },
+  { "res/tiles/de/deed.bmp"  , false, 0 },
+  { "res/tiles/de/deee.bmp"  , false, 0 },
+  { "res/tiles/de/eddd.bmp"  , false, 0 },
+  { "res/tiles/de/edde.bmp"  , false, 0 },
+  { "res/tiles/de/eded.bmp"  , false, 0 },
+  { "res/tiles/de/edee.bmp"  , false, 0 },
+  { "res/tiles/de/eedd.bmp"  , false, 0 },
+  { "res/tiles/de/eede.bmp"  , false, 0 },
+  { "res/tiles/de/eeed.bmp"  , false, 0 },
+  { "res/tiles/de/eeee.bmp"  , false, 0 },
+  
+  // Sand-palm
+  { "res/tiles/sp/ssss.bmp"  , false, 0 },
+  { "res/tiles/sp/sssp.bmp"  , false, 0 },
+  { "res/tiles/sp/ssps.bmp"  , false, 0 },
+  { "res/tiles/sp/sspp.bmp"  , false, 0 },
+  { "res/tiles/sp/spss.bmp"  , false, 0 },
+  { "res/tiles/sp/spsp.bmp"  , false, 0 },
+  { "res/tiles/sp/spps.bmp"  , false, 0 },
+  { "res/tiles/sp/sppp.bmp"  , false, 0 },
+  { "res/tiles/sp/psss.bmp"  , false, 0 },
+  { "res/tiles/sp/pssp.bmp"  , false, 0 },
+  { "res/tiles/sp/psps.bmp"  , false, 0 },
+  { "res/tiles/sp/pspp.bmp"  , false, 0 },
+  { "res/tiles/sp/ppss.bmp"  , false, 0 },
+  { "res/tiles/sp/ppsp.bmp"  , false, 0 },
+  { "res/tiles/sp/ppps.bmp"  , false, 0 },
+  { "res/tiles/sp/pppp.bmp"  , false, 0 },
+  
+  // Water-island
+  { "res/tiles/wi/wwww.bmp"  , false, 0 },
+  { "res/tiles/wi/wwwi.bmp"  , false, 0 },
+  { "res/tiles/wi/wwiw.bmp"  , false, 0 },
+  { "res/tiles/wi/wwii.bmp"  , false, 0 },
+  { "res/tiles/wi/wiww.bmp"  , false, 0 },
+  { "res/tiles/wi/wiwi.bmp"  , false, 0 },
+  { "res/tiles/wi/wiiw.bmp"  , false, 0 },
+  { "res/tiles/wi/wiii.bmp"  , false, 0 },
+  { "res/tiles/wi/iwww.bmp"  , false, 0 },
+  { "res/tiles/wi/iwwi.bmp"  , false, 0 },
+  { "res/tiles/wi/iwiw.bmp"  , false, 0 },
+  { "res/tiles/wi/iwii.bmp"  , false, 0 },
+  { "res/tiles/wi/iiww.bmp"  , false, 0 },
+  { "res/tiles/wi/iiwi.bmp"  , false, 0 },
+  { "res/tiles/wi/iiiw.bmp"  , false, 0 },
+  { "res/tiles/wi/iiii.bmp"  , false, 0 },
+  
+  // L-R
+  { "res/tiles/lr/llll.bmp"  , false, 0 },
+  { "res/tiles/lr/lllr.bmp"  , false, 0 },
+  { "res/tiles/lr/llrl.bmp"  , false, 0 },
+  { "res/tiles/lr/llrr.bmp"  , false, 0 },
+  { "res/tiles/lr/lrll.bmp"  , false, 0 },
+  { "res/tiles/lr/lrlr.bmp"  , false, 0 },
+  { "res/tiles/lr/lrrl.bmp"  , false, 0 },
+  { "res/tiles/lr/lrrr.bmp"  , false, 0 },
+  { "res/tiles/lr/rlll.bmp"  , false, 0 },
+  { "res/tiles/lr/rllr.bmp"  , false, 0 },
+  { "res/tiles/lr/rlrl.bmp"  , false, 0 },
+  { "res/tiles/lr/rlrr.bmp"  , false, 0 },
+  { "res/tiles/lr/rrll.bmp"  , false, 0 },
+  { "res/tiles/lr/rrlr.bmp"  , false, 0 },
+  { "res/tiles/lr/rrrl.bmp"  , false, 0 },
+  { "res/tiles/lr/rrrr.bmp"  , false, 0 },
+  
+  // X-Y
+  { "res/tiles/xy/xxxx.bmp"  , false, 0 },
+  { "res/tiles/xy/xxxy.bmp"  , false, 0 },
+  { "res/tiles/xy/xxyx.bmp"  , false, 0 },
+  { "res/tiles/xy/xxyy.bmp"  , false, 0 },
+  { "res/tiles/xy/xyxx.bmp"  , false, 0 },
+  { "res/tiles/xy/xyxy.bmp"  , false, 0 },
+  { "res/tiles/xy/xyyx.bmp"  , false, 0 },
+  { "res/tiles/xy/xyyy.bmp"  , false, 0 },
+  { "res/tiles/xy/yxxx.bmp"  , false, 0 },
+  { "res/tiles/xy/yxxy.bmp"  , false, 0 },
+  { "res/tiles/xy/yxyx.bmp"  , false, 0 },
+  { "res/tiles/xy/yxyy.bmp"  , false, 0 },
+  { "res/tiles/xy/yyxx.bmp"  , false, 0 },
+  { "res/tiles/xy/yyxy.bmp"  , false, 0 },
+  { "res/tiles/xy/yyyx.bmp"  , false, 0 },
+  { "res/tiles/xy/yyyy.bmp"  , false, 0 },
+  
+  // K-V
+  { "res/tiles/kv/kkkk.bmp"  , false, 0 },
+  { "res/tiles/kv/kkkv.bmp"  , false, 0 },
+  { "res/tiles/kv/kkvk.bmp"  , false, 0 },
+  { "res/tiles/kv/kkvv.bmp"  , false, 0 },
+  { "res/tiles/kv/kvkk.bmp"  , false, 0 },
+  { "res/tiles/kv/kvkv.bmp"  , false, 0 },
+  { "res/tiles/kv/kvvk.bmp"  , false, 0 },
+  { "res/tiles/kv/kvvv.bmp"  , false, 0 },
+  { "res/tiles/kv/vkkk.bmp"  , false, 0 },
+  { "res/tiles/kv/vkkv.bmp"  , false, 0 },
+  { "res/tiles/kv/vkvk.bmp"  , false, 0 },
+  { "res/tiles/kv/vkvv.bmp"  , false, 0 },
+  { "res/tiles/kv/vvkk.bmp"  , false, 0 },
+  { "res/tiles/kv/vvkv.bmp"  , false, 0 },
+  { "res/tiles/kv/vvvk.bmp"  , false, 0 },
+  { "res/tiles/kv/vvvv1.bmp" , false, 0 },
+  
+  // K-B
+  { "res/tiles/kb/kkkk.bmp"  , false, 0 },
+  { "res/tiles/kb/kkkb.bmp"  , false, 0 },
+  { "res/tiles/kb/kkbk.bmp"  , false, 0 },
+  { "res/tiles/kb/kkbb.bmp"  , false, 0 },
+  { "res/tiles/kb/kbkk.bmp"  , false, 0 },
+  { "res/tiles/kb/kbkb.bmp"  , false, 0 },
+  { "res/tiles/kb/kbbk.bmp"  , false, 0 },
+  { "res/tiles/kb/kbbb.bmp"  , false, 0 },
+  { "res/tiles/kb/bkkk.bmp"  , false, 0 },
+  { "res/tiles/kb/bkkb.bmp"  , false, 0 },
+  { "res/tiles/kb/bkbk.bmp"  , false, 0 },
+  { "res/tiles/kb/bkbb.bmp"  , false, 0 },
+  { "res/tiles/kb/bbkk.bmp"  , false, 0 },
+  { "res/tiles/kb/bbkb.bmp"  , false, 0 },
+  { "res/tiles/kb/bbbk.bmp"  , false, 0 },
+  { "res/tiles/kb/bbbb.bmp"  , false, 0 }
 };
 
 void LoadTextures()
@@ -261,7 +437,7 @@ void GenTerrain(float upto)
     int mapped_row = UMod(i, RUNNING_ROWS);
 
     for (int j = 0; j < TILES_ACROSS; j++)
-      Terrain[mapped_row][j] = (Core_RandChance(chance) & 1);
+      Terrain[mapped_row][j] = (CORE_RandChance(chance) & 1);
   }
 
   // Calculate the tiles
@@ -810,6 +986,7 @@ void ResetNewGame(int level)
   else if (level >= NUM_LEVELS) level = NUM_LEVELS - 1;
   g_current_level = level;
   g_active_tileset = LevelDescs[level].tileset;
+  LOG(("Active tileset: %d", g_active_tileset));
 
   // Reset everything for a new game...
   g_next_challenge_area = FIRST_CHALLENGE;
@@ -1038,7 +1215,7 @@ void RunGame()
     case GS_DYING:
       if (g_gs_timer >= DYING_TIME)
       {
-        ResetNewGame();
+        ResetNewGame(0);
       }
       break;
 
@@ -1063,7 +1240,7 @@ void RunGame()
             false,
             true);
       if (g_gs_timer >= VICTORY_TIME)
-        ResetNewGame();
+        ResetNewGame(0);
       break;
   }
 
@@ -1125,17 +1302,17 @@ void ProcessInput()
     else if (tilt < +0.2f * SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_C;
     else if (tilt < +0.6f + SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_R;
     else                                   MAIN_SHIP.gfx = T_SHIP_RR;
-  }
 
-  if (SYS_KeyPressed('1')) ResetNewGame(0);
-  else if (SYS_KeyPressed('2')) ResetNewGame(1);
-  else if (SYS_KeyPressed('3')) ResetNewGame(2);
-  else if (SYS_KeyPressed('4')) ResetNewGame(3);
-  else if (SYS_KeyPressed('5')) ResetNewGame(4);
-  else if (SYS_KeyPressed('6')) ResetNewGame(5);
-  else if (SYS_KeyPressed('7')) ResetNewGame(6);
-  else if (SYS_KeyPressed('8')) ResetNewGame(7);
-  else if (SYS_KeyPressed('9')) ResetNewGame(8);
+    if (SYS_KeyPressed('1')) ResetNewGame(0);
+    else if (SYS_KeyPressed('2')) ResetNewGame(1);
+    else if (SYS_KeyPressed('3')) ResetNewGame(2);
+    else if (SYS_KeyPressed('4')) ResetNewGame(3);
+    else if (SYS_KeyPressed('5')) ResetNewGame(4);
+    else if (SYS_KeyPressed('6')) ResetNewGame(5);
+    else if (SYS_KeyPressed('7')) ResetNewGame(6);
+    else if (SYS_KeyPressed('8')) ResetNewGame(7);
+    else if (SYS_KeyPressed('9')) ResetNewGame(8);
+  }
 }
 
 // Game state (apart from entities & other standalone modules)
@@ -1148,7 +1325,7 @@ int Main(void)
   CORE_InitSound();
   LoadTextures();
   LoadSounds();
-  ResetNewGame();
+  ResetNewGame(0);
 
   // Set up rendering
   glViewport(0, 0, SYS_WIDTH, SYS_HEIGHT);
