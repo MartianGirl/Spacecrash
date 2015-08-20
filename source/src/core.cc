@@ -4,7 +4,7 @@
 #include "core.h"
 
 // Loading textures (from BMP files)
-#define MAX_TEXTURES 32
+#define MAX_TEXTURES 256
 struct Texture
 {
   bool used;

@@ -108,23 +108,41 @@ enum TexId
   T_DRONE0,
   T_DRONE1,
   T_DRONE2,
-  T_TILES_G_ON_S,
-  T_SSSS = T_TILES_G_ON_S,
-  T_SSSG,
-  T_SSGS,
-  T_SSGG,
-  T_SGSS,
-  T_SGSG,
-  T_SGGS,
-  T_SGGG,
-  T_GSSS,
-  T_GSSG,
-  T_GSGS,
-  T_GSGG,
-  T_GGSS,
-  T_GGSG,
-  T_GGGS,
-  T_GGGG
+  T_TILES_G_ON_S, T_SSSS = T_TILES_G_ON_S,
+  T_SSSG, T_SSGS, T_SSGG, T_SGSS, T_SGSG, T_SGGS, T_SGGG,
+  T_GSSS, T_GSSG, T_GSGS, T_GSGG, T_GGSS, T_GGSG, T_GGGS, T_GGGG, 
+
+  T_TILES_P_ON_S, T_SSSS = T_TILES_P_ON_S,
+  T_SSSP, T_SSPS, T_SSPP, T_SPSS, T_SPSP, T_SPPS, T_SPPP,
+  T_PSSS, T_PSSP, T_PSPS, T_PSPP, T_PPSS, T_PPSP, T_PPPS, T_PPPP, 
+
+  T_TILES_D_ON_S, T_SSSS = T_TILES_D_ON_S,
+  T_SSSD, T_SSDS, T_SSDD, T_SDSS, T_SDSD, T_SDDS, T_SDDD,
+  T_DSSS, T_DSSD, T_DSDS, T_DSDD, T_DDSS, T_DDSD, T_DDDS, T_DDDD, 
+
+  T_TILES_E_ON_D, T_DDDD = T_TILES_E_ON_D,
+  T_DDDE, T_DDED, T_DDEE, T_DEDD, T_DEDE, T_DEED, T_DEEE,
+  T_EDDD, T_EDDE, T_EDED, T_EDEE, T_EEDD, T_EEDE, T_EEED, T_EEEE, 
+
+  T_TILES_I_ON_W, T_WWWW = T_TILES_I_ON_W,
+  T_WWWI, T_WWIW, T_WWII, T_WIWW, T_WIWI, T_WIIW, T_WIII,
+  T_IWWW, T_IWWI, T_IWIW, T_IWII, T_IIWW, T_IIWI, T_IIIW, T_IIII, 
+
+  T_TILES_Y_ON_X, T_XXXX = T_TILES_Y_ON_X,
+  T_XXXY, T_XXYX, T_XXYY, T_XYXX, T_XYXY, T_XYYX, T_XYYY,
+  T_YXXX, T_YXXY, T_YXYX, T_YXYY, T_YYXX, T_YYXY, T_YYYX, T_YYYY, 
+
+  T_TILES_R_ON_L, T_LLLL = T_TILES_R_ON_L,
+  T_LLLR, T_LLRL, T_LLRR, T_LRLL, T_LRLR, T_LRRL, T_LRRR,
+  T_RLLL, T_RLLR, T_RLRL, T_RLRR, T_RRLL, T_RRLR, T_RRRL, T_RRRR, 
+
+  T_TILES_V_ON_K, T_KKKK = T_TILES_V_ON_K,
+  T_KKKV, T_KKVK, T_KKVV, T_KVKK, T_KVKV, T_KVVK, T_KVVV,
+  T_VKKK, T_VKKV, T_VKVK, T_VKVV, T_VVKK, T_VVKV, T_VVVK, T_VVVV, 
+
+  T_TILES_B_ON_K, T_KKKK = T_TILES_B_ON_K,
+  T_KKKB, T_KKBK, T_KKBB, T_KBKK, T_KBKB, T_KBBK, T_KBBB,
+  T_BKKK, T_BKKB, T_BKBK, T_BKBB, T_BBKK, T_BBKB, T_BBBK, T_BBBB
 };
 
 struct Texture
@@ -178,6 +196,43 @@ GLuint Tex(TexId id)
   return textures[id].tex;
 }
 
+TexId g_active_tileset = T_TILES_G_ON_S;
+int g_current_level = 0;
+
+// Levels
+#define NUM_LEVELS 9
+struct LevelDesc
+{
+  TexId tileset;
+  float level_length;
+  float path_width;
+  float path_twist_ratio;
+  int min_layers;
+  int max_layers;
+  int min_rocks_per_layer;
+  int max_rocks_per_layer;
+  float chance_mine;
+  float chance_drone;
+  float min_space_between_layers;
+  float max_space_between_layers;
+  float min_space_between_challenges;
+  float max_space_between_challenges;
+  float level_start_chance_alt_terrain;
+  float level_end_chance_alt_terrain;
+};
+
+LevelDesc LevelDescs[NUM_LEVELS] = {
+  {T_TILES_G_ON_S,  40000.f, (2.2f * MAINSHIP_RADIUS), 0.5f, 0, 10, 0, 3, 0.1f, 0.0f, 300.f, 600.f, 700.f, 2500.f, 0.2f, 0.9f},
+  {T_TILES_P_ON_S,  60000.f, (2.1f * MAINSHIP_RADIUS), 0.5f, 1, 15, 0, 3, 0.1f, 0.0f, 300.f, 600.f, 650.f, 2300.f, 0.2f, 0.9f},
+  {T_TILES_D_ON_S,  80000.f, (2.0f * MAINSHIP_RADIUS), 0.5f, 1, 20, 0, 3, 0.2f, 0.0f, 250.f, 600.f, 600.f, 2100.f, 0.2f, 0.9f},
+  {T_TILES_E_ON_D, 100000.f, (1.9f * MAINSHIP_RADIUS), 0.6f, 2, 25, 1, 4, 0.3f, 0.0f, 250.f, 500.f, 550.f, 1900.f, 0.2f, 0.9f},
+  {T_TILES_I_ON_W, 120000.f, (1.8f * MAINSHIP_RADIUS), 0.7f, 2, 30, 1, 4, 0.4f, 0.1f, 200.f, 500.f, 500.f, 1700.f, 0.1f, 0.9f},
+  {T_TILES_Y_ON_X, 140000.f, (1.7f * MAINSHIP_RADIUS), 0.8f, 3, 35, 1, 4, 0.4f, 0.1f, 200.f, 500.f, 450.f, 1500.f, 0.2f, 0.9f},
+  {T_TILES_R_ON_L, 160000.f, (1.6f * MAINSHIP_RADIUS), 0.9f, 3, 40, 2, 5, 0.5f, 0.1f, 200.f, 400.f, 400.f, 1300.f, 0.8f, 0.1f},
+  {T_TILES_V_ON_K, 180000.f, (1.5f * MAINSHIP_RADIUS), 1.0f, 4, 45, 2, 5, 0.6f, 0.2f, 150.f, 400.f, 350.f, 1100.f, 0.2f, 0.9f},
+  {T_TILES_B_ON_K, 200000.f, (1.4f * MAINSHIP_RADIUS), 1.1f, 4, 50, 2, 5, 0.7f, 0.3f, 150.f, 400.f, 300.f,  900.f, 0.2f, 0.9f}
+};
+
 // Background generation
 #define TILE_WIDTH 120//96//75
 #define TILE_HEIGHT 140//112//58
@@ -198,10 +253,15 @@ void GenTerrain(float upto)
   // Generate random terrain types
   for (int i = g_last_generated + 1; i <= last_required_row; i++)
   {
+    float advance = (i * TILE_HEIGHT) / LevelDescs[g_current_level].level_length;
+    float chance = LevelDescs[g_current_level].level_start_chance_alt_terrain
+      + advance * (LevelDescs[g_current_level].level_end_chance_alt_terrain
+          - LevelDescs[g_current_level].level_start_chance_alt_terrain);
+
     int mapped_row = UMod(i, RUNNING_ROWS);
 
     for (int j = 0; j < TILES_ACROSS; j++)
-      Terrain[mapped_row][j] = (Core_RandChance(0.5f) & 1);
+      Terrain[mapped_row][j] = (Core_RandChance(chance) & 1);
   }
 
   // Calculate the tiles
@@ -657,8 +717,6 @@ void Render()
 // Level generation
 float g_next_challenge_area = FIRST_CHALLENGE;
 vec2 g_last_conditioned = vmake(0.0f, 0.0f);
-#define PATH_TWIST_RATIO 0.5f // This means about 30 degrees maximum
-#define PATH_WIDTH (2.f * MAINSHIP_RADIUS)
 
 void GenNextElements()
 {
@@ -666,18 +724,32 @@ void GenNextElements()
   // "next challenge area"
   if (g_current_race_pos + G_HEIGHT > g_next_challenge_area)
   {
+    // Get params from current level
+    float path_width = LevelDescs[g_current_level].path_width;
+    float path_twist_ratio = LevelDescs[g_current_level].path_twist_ratio;
+    int min_layers = LevelDescs[g_current_level].min_layers;
+    int max_layers = LevelDescs[g_current_level].max_layers;
+    int min_rocks_per_layer = LevelDescs[g_current_level].min_rocks_per_layer;
+    int max_rocks_per_layer = LevelDescs[g_current_level].max_rocks_per_layer;
+    float chance_mine = LevelDescs[g_current_level].chance_mine;
+    float chance_drone = LevelDescs[g_current_level].chance_drone;
+    float min_space_between_layers = LevelDescs[g_current_level].min_space_between_layers;
+    float max_space_between_layers = LevelDescs[g_current_level].max_space_between_layers;
+    float min_space_between_challenges = LevelDescs[g_current_level].min_space_between_challenges;
+    float max_space_between_challenges = LevelDescs[g_current_level].max_space_between_challenges;
+
     float current_y = g_next_challenge_area;
     LOG(("Current: %f\n", g_next_challenge_area));
 
     // Choose how many layers of rocks
-    int nlayers = (int)CORE_URand(1, 20);
+    int nlayers = (int)CORE_URand(min_layers, max_layers);
     LOG((" nlayers: %d\n", nlayers));
     for (int i = 0; i < nlayers; i++)
     {
       LOG(("  where: %f\n", current_y));
 
       // Choose pass point
-      float displace = (current_y - g_last_conditioned.y) * PATH_TWIST_RATIO;
+      float displace = (current_y - g_last_conditioned.y) * path_twist_ratio;
       float bracket_left  = g_last_conditioned.x - displace;
       float bracket_right = g_last_conditioned.x + displace;
       bracket_left  = MAX(bracket_left, 2.0f * MAINSHIP_RADIUS);
@@ -694,7 +766,7 @@ void GenNextElements()
        * true);*/
 
       // Choose how many rocks
-      int nrocks = (int)CORE_URand(0, 3);
+      int nrocks = (int)CORE_URand(min_rocks_per_layer, max_rocks_per_layer);
       LOG(("  nrocks: %d\n", nrocks));
 
       // Gen rocks
@@ -705,36 +777,40 @@ void GenNextElements()
         for (int k = 0; k < 10; k++)  // 10 attempts maximum, avoid infinite loops!
         {
           rockpos = vmake(CORE_FRand(0.0f, G_WIDTH), current_y);
-          if (rockpos.x + ROCK_RADIUS < g_last_conditioned.x - PATH_WIDTH
-              || rockpos.x - ROCK_RADIUS > g_last_conditioned.x + PATH_WIDTH)
+          if (rockpos.x + ROCK_RADIUS < g_last_conditioned.x - path_width
+              || rockpos.x - ROCK_RADIUS > g_last_conditioned.x + path_width)
             break;
         }
 
         // Insert obstacle
         EType t = E_ROCK;
         TexId gfx = T_ROCK1;
-        if (CORE_RandChance(0.1f)) { t = E_MINE; gfx = T_MINE; }
-        else if (CORE_RandChance(0.1f)) { t = E_DRONE; gfx = T_DRONE2; }
+        if (CORE_RandChance(chance_mine)) { t = E_MINE; gfx = T_MINE; }
+        else if (CORE_RandChance(chance_drone)) { t = E_DRONE; gfx = T_DRONE2; }
         InsertEntity(t,
             rockpos,
             vmake(CORE_FRand(-0.5f, +0.5f), CORE_FRand(-0.5f, +0.5f)),
-            //vmake(0.0f, 0.0f),
             ROCK_RADIUS,
             gfx,
             true);
       } 
 
-      current_y += CORE_FRand(300.0f, 600.0f);
+      current_y += CORE_FRand(min_space_between_layers, max_space_between_layers);
     }
 
     g_next_challenge_area = current_y 
-      + CORE_FRand(0.5f * G_HEIGHT, 1.5f * G_HEIGHT);
+      + CORE_FRand(min_space_between_challenges, max_space_between_challenges);
     LOG(("Next: %f\n\n", g_next_challenge_area));
   }
 }
 
-void ResetNewGame()
+void ResetNewGame(int level)
 {
+  if (level < 0) level = 0;
+  else if (level >= NUM_LEVELS) level = NUM_LEVELS - 1;
+  g_current_level = level;
+  g_active_tileset = LevelDescs[level].tileset;
+
   // Reset everything for a new game...
   g_next_challenge_area = FIRST_CHALLENGE;
   g_last_conditioned = vmake(0.5f * G_WIDTH, 0.0f);
@@ -743,6 +819,7 @@ void ResetNewGame()
   g_rock_chance = START_ROCK_CHANCE_PER_PIXEL;
   g_gs = GS_STARTING;
   g_gs_timer = 0.0f;
+  g_last_generated = -1;
 
   // Start logic
   for (int i = 0; i < MAX_ENTITIES; i++)
@@ -1049,6 +1126,16 @@ void ProcessInput()
     else if (tilt < +0.6f + SHIP_MAX_TILT) MAIN_SHIP.gfx = T_SHIP_R;
     else                                   MAIN_SHIP.gfx = T_SHIP_RR;
   }
+
+  if (SYS_KeyPressed('1')) ResetNewGame(0);
+  else if (SYS_KeyPressed('2')) ResetNewGame(1);
+  else if (SYS_KeyPressed('3')) ResetNewGame(2);
+  else if (SYS_KeyPressed('4')) ResetNewGame(3);
+  else if (SYS_KeyPressed('5')) ResetNewGame(4);
+  else if (SYS_KeyPressed('6')) ResetNewGame(5);
+  else if (SYS_KeyPressed('7')) ResetNewGame(6);
+  else if (SYS_KeyPressed('8')) ResetNewGame(7);
+  else if (SYS_KeyPressed('9')) ResetNewGame(8);
 }
 
 // Game state (apart from entities & other standalone modules)
