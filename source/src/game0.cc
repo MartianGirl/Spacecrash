@@ -107,7 +107,24 @@ enum TexId
   T_MINE,
   T_DRONE0,
   T_DRONE1,
-  T_DRONE2
+  T_DRONE2,
+  T_TILES_G_ON_S,
+  T_SSSS = T_TILES_G_ON_S,
+  T_SSSG,
+  T_SSGS,
+  T_SSGG,
+  T_SGSS,
+  T_SGSG,
+  T_SGGS,
+  T_SGGG,
+  T_GSSS,
+  T_GSSG,
+  T_GSGS,
+  T_GSGG,
+  T_GGSS,
+  T_GGSG,
+  T_GGGS,
+  T_GGGG
 };
 
 struct Texture
@@ -159,6 +176,68 @@ void UnloadTextures()
 GLuint Tex(TexId id)
 {
   return textures[id].tex;
+}
+
+// Background generation
+#define TILE_WIDTH 120//96//75
+#define TILE_HEIGHT 140//112//58
+#define TILES_ACROSS (1+(int)((G_WIDTH+TILE_WIDTH-1)/TILE_WIDTH))
+#define TILES_DOWN   (1+(int)((G_HEIGHT+TILE_HEIGHT-1)/TILE_HEIGHT))
+#define RUNNING_ROWS (2*TILES_DOWN)
+
+// Bottom to top!
+byte Terrain[RUNNING_ROWS][TILES_ACROSS];
+TexId TileMap[RUNNING_ROWS][TILES_ACROSS];
+
+int g_last_generated = -1;
+
+void GenTerrain(float upto)
+{
+  int last_required_row = 1 + (int)(upto / TILE_HEIGHT);
+
+  // Generate random terrain types
+  for (int i = g_last_generated + 1; i <= last_required_row; i++)
+  {
+    int mapped_row = UMod(i, RUNNING_ROWS);
+
+    for (int j = 0; j < TILES_ACROSS; j++)
+      Terrain[mapped_row][j] = (Core_RandChance(0.5f) & 1);
+  }
+
+  // Calculate the tiles
+  for (int i = g_last_generated; i <= last_required_row; i++)
+  {
+    int mapped_row = UMod(i, RUNNING_ROWS);
+
+    for (int j = 0; j < TILES_ACROSS; j++)
+    {
+      unsigned v = (Terrain[mapped_row][j] << 1)
+        | (Terrain[mapped_row][UMod(j+1, TILES_ACROSS)] << 0)
+        | (Terrain[UMod(mapped_row+1, RUNNING_ROWS)][j] << 3)
+        | (Terrain[UMod(mapped_row+1, RUNNING_ROWS)][UMod(j+1, TILES_ACROSS)] << 2);
+      if (v > 15) v = 15;
+      TileMap[mapped_row][j] = (TexId)(g_active_tileset + v);
+    }
+  }
+
+  g_last_generated = last_required_row;
+}
+
+void RenderTerrain()
+{
+  int first_row = (int)(g_camera_offset / TILE_HEIGHT);
+
+  for (int i = first_row; i < first_row + TILES_DOWN; i++)
+  {
+    int mapped_row = UMod(i, RUNNING_ROWS);
+    for (int j = 0; j < TILES_ACROSS; j++)
+      CORE_RenderCenteredSprite(
+          vsub(
+            vmake(j * TILE_WIDTH + 0.5f * TILE_WIDTH, i * TILE_WIDTH + 0.5f * TILE_HEIGHT),
+            vmake(0.0f, g_camera_offset)),
+          vmake(TILE_WIDTH * 1.01f, TILE_HEIGHT * 1.01f),
+          Tex(TileMap[mapped_row][j]));
+  }
 }
 
 // Particle systems manager
